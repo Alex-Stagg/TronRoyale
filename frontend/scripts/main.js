@@ -36,6 +36,10 @@ document.addEventListener('keydown', (e) => {
         e.key === 'ArrowRight' ? { x: speed, y: 0 } : 
         null
     );
+    // Prevent reversing direction
+    if (newDir && newDir.x === -direction.x && newDir.y === -direction.y) {
+        return;
+    }
     if (newDir && (newDir.x !== direction.x || newDir.y !== direction.y)) {
         // Record current head position as a turning point
         vertices.push({ x, y });
