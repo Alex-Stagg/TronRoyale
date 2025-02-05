@@ -18,6 +18,10 @@ Use the arrow keys to control your cycle:
 
 Avoid colliding with your own tail or the canvas boundaries. A collision will reset the game.
 
+## Web Socket Link
+Connect to the game using the following WebSocket link:
+[wss://tronroyale.azurewebsites.net/ws](wss://tronroyale.azurewebsites.net/ws)
+
 ## File Structure
 - `/frontend/index.html` – Main HTML file hosting the game.
 - `/frontend/scripts/main.js` – Game logic including movement and collision detection.
