@@ -90,9 +90,13 @@ function gameLoop() {
         }
     }
     
-    // Draw tail as a continuous line connecting vertices and ending at current head position
+    // Draw tail as a continuous line with bloom effect
+    ctx.save(); // Save current state
     ctx.strokeStyle = '#00ffff'; // Neon cyan
     ctx.lineWidth = cellSize;
+    ctx.shadowColor = '#00ffff'; // Bloom effect color (same as tail)
+    // Increased shadowBlur from 20 to 25 for enhanced intensity
+    ctx.shadowBlur = 25; // Previously 20
     ctx.beginPath();
     // Start at first vertex
     ctx.moveTo(vertices[0].x, vertices[0].y);
@@ -103,6 +107,7 @@ function gameLoop() {
     // Draw line to current head position
     ctx.lineTo(x, y);
     ctx.stroke();
+    ctx.restore(); // Restore state
     
     // Boundary collision: check if head is outside canvas bounds
     if (x < 0 || x > canvas.width - cellSize || y < 0 || y > canvas.height - cellSize) {
