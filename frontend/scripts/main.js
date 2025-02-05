@@ -19,6 +19,7 @@ window.addEventListener('resize', () => {
 });
 
 let speed = 2;
+let gameOver = false;
 // Initialize direction and starting position; head is at center initially
 let direction = { x: speed, y: 0 };
 let vertices = [{ x: canvas.width / 2, y: canvas.height / 2 }];
@@ -26,24 +27,55 @@ let cellSize = 5;
 let x = canvas.width / 2;
 let y = canvas.height / 2;
 
+// New variables for player2
+let p2Direction = { x: speed, y: 0 };
+let p2Vertices = [{ x: canvas.width * 3/4, y: canvas.height / 2 }];
+let p2CellSize = 5;
+let p2X = canvas.width * 3/4;
+let p2Y = canvas.height / 2;
+const p2Color = '#ff00ff'; // Neon magenta for player2
+
 // Handle key presses to change direction and record turns
 document.addEventListener('keydown', (e) => {
-    // Determine new direction based on pressed arrow key
-    const newDir = (
+    if (gameOver) {
+        // Reset both players
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+        vertices = [{ x, y }];
+        direction = { x: speed, y: 0 };
+        p2X = canvas.width * 3/4;
+        p2Y = canvas.height / 2;
+        p2Vertices = [{ x: p2X, y: p2Y }];
+        p2Direction = { x: speed, y: 0 };
+        gameOver = false;
+        gameLoop();
+        return;
+    }
+    
+    // Player1 controls (arrow keys)
+    const newDir1 = (
         e.key === 'ArrowUp' ? { x: 0, y: -speed } :
         e.key === 'ArrowDown' ? { x: 0, y: speed } :
         e.key === 'ArrowLeft' ? { x: -speed, y: 0 } :
-        e.key === 'ArrowRight' ? { x: speed, y: 0 } : 
+        e.key === 'ArrowRight' ? { x: speed, y: 0 } :
         null
     );
-    // Prevent reversing direction
-    if (newDir && newDir.x === -direction.x && newDir.y === -direction.y) {
-        return;
-    }
-    if (newDir && (newDir.x !== direction.x || newDir.y !== direction.y)) {
-        // Record current head position as a turning point
+    if (newDir1 && !(newDir1.x === -direction.x && newDir1.y === -direction.y)) {
         vertices.push({ x, y });
-        direction = newDir;
+        direction = newDir1;
+    }
+    
+    // Player2 controls (WASD: w-up, s-down, a-left, d-right)
+    const newDir2 = (
+        e.key === 'w' || e.key === 'W' ? { x: 0, y: -speed } :
+        e.key === 's' || e.key === 'S' ? { x: 0, y: speed } :
+        e.key === 'a' || e.key === 'A' ? { x: -speed, y: 0 } :
+        e.key === 'd' || e.key === 'D' ? { x: speed, y: 0 } :
+        null
+    );
+    if (newDir2 && !(newDir2.x === -p2Direction.x && newDir2.y === -p2Direction.y)) {
+        p2Vertices.push({ x: p2X, y: p2Y });
+        p2Direction = newDir2;
     }
 });
 
@@ -62,16 +94,35 @@ function linesIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
     return (t > 0 && t < 1 && u > 0 && u < 1);
 }
 
+// New function to draw a player tail with bloom effect; color parameter controls the look.
+function drawPlayerTail(startVertices, currentX, currentY, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = cellSize;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 25;
+    ctx.beginPath();
+    ctx.moveTo(startVertices[0].x, startVertices[0].y);
+    for (let i = 1; i < startVertices.length; i++) {
+        ctx.lineTo(startVertices[i].x, startVertices[i].y);
+    }
+    ctx.lineTo(currentX, currentY);
+    ctx.stroke();
+    ctx.restore();
+}
+
 function gameLoop() {
     // Clear entire canvas for new frame
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Update head position based on current direction
+    // Update player1 position
     x += direction.x;
     y += direction.y;
+    // Update player2 position
+    p2X += p2Direction.x;
+    p2Y += p2Direction.y;
     
-    // Collision detection:
-    // Check current segment (from last vertex to current head) against every previous segment
+    // Collision detection for player1 self-trail
     if (vertices.length >= 1) {
         const segStart = vertices[vertices.length - 1];
         const segEnd = { x, y };
@@ -80,44 +131,43 @@ function gameLoop() {
             const prevEnd = vertices[i + 1];
             if (linesIntersect(prevStart.x, prevStart.y, prevEnd.x, prevEnd.y, segStart.x, segStart.y, segEnd.x, segEnd.y)) {
                 alert('Game Over!');
-                // Reset head, vertices, and direction on collision
-                x = canvas.width / 2;
-                y = canvas.height / 2;
-                vertices = [{ x, y }];
-                direction = { x: speed, y: 0 };
-                return requestAnimationFrame(gameLoop);
+                gameOver = true;
+                break;
             }
         }
     }
-    
-    // Draw tail as a continuous line with bloom effect
-    ctx.save(); // Save current state
-    ctx.strokeStyle = '#00ffff'; // Neon cyan
-    ctx.lineWidth = cellSize;
-    ctx.shadowColor = '#00ffff'; // Bloom effect color (same as tail)
-    // Increased shadowBlur from 20 to 25 for enhanced intensity
-    ctx.shadowBlur = 25; // Previously 20
-    ctx.beginPath();
-    // Start at first vertex
-    ctx.moveTo(vertices[0].x, vertices[0].y);
-    // Connect all turning points
-    for (let i = 1; i < vertices.length; i++) {
-        ctx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    // Draw line to current head position
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.restore(); // Restore state
-    
-    // Boundary collision: check if head is outside canvas bounds
+    // Boundary collision for player1
     if (x < 0 || x > canvas.width - cellSize || y < 0 || y > canvas.height - cellSize) {
         alert('Game Over!');
-        // Reset on boundary collision
-        x = canvas.width / 2;
-        y = canvas.height / 2;
-        vertices = [{ x, y }];
-        direction = { x: speed, y: 0 };
+        gameOver = true;
     }
+    
+    // Collision detection for player2 self-trail
+    if (p2Vertices.length >= 1) {
+        const segStart2 = p2Vertices[p2Vertices.length - 1];
+        const segEnd2 = { x: p2X, y: p2Y };
+        for (let i = 0; i < p2Vertices.length - 1; i++) {
+            const prevStart2 = p2Vertices[i];
+            const prevEnd2 = p2Vertices[i + 1];
+            if (linesIntersect(prevStart2.x, prevStart2.y, prevEnd2.x, prevEnd2.y, segStart2.x, segStart2.y, segEnd2.x, segEnd2.y)) {
+                alert('Game Over!');
+                gameOver = true;
+                break;
+            }
+        }
+    }
+    // Boundary collision for player2
+    if (p2X < 0 || p2X > canvas.width - p2CellSize || p2Y < 0 || p2Y > canvas.height - p2CellSize) {
+        alert('Game Over!');
+        gameOver = true;
+    }
+    
+    // Draw player tails if not game over
+    if (!gameOver) {
+        drawPlayerTail(vertices, x, y, '#00ffff'); // Player1: neon cyan
+        drawPlayerTail(p2Vertices, p2X, p2Y, p2Color); // Player2: neon magenta
+    }
+    
     requestAnimationFrame(gameLoop);
 }
 
