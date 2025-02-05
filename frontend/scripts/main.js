@@ -14,8 +14,9 @@ function drawRectangle(x, y, width, height, color) {
 
 // Event listener for mouse clicks to draw on the canvas
 canvas.addEventListener('click', (event) => {
-    const rectX = event.clientX - 25; // Center the rectangle
-    const rectY = event.clientY - 25; // Center the rectangle
+    const rect = canvas.getBoundingClientRect();
+    const rectX = event.clientX - rect.left - 25; // Center the rectangle
+    const rectY = event.clientY - rect.top - 25; // Center the rectangle
     drawRectangle(rectX, rectY, 50, 50, 'blue'); // Draw a blue rectangle
 });
 
