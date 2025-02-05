@@ -87,7 +87,7 @@ function gameLoop() {
     }
     
     // Draw tail as a continuous line connecting vertices and ending at current head position
-    ctx.strokeStyle = 'cyan';
+    ctx.strokeStyle = '#00ffff'; // Neon cyan
     ctx.lineWidth = cellSize;
     ctx.beginPath();
     // Start at first vertex
