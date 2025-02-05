@@ -1,5 +1,5 @@
 canvas {
-    border: 1px solid black;
+    border: 2px solid #ffa500; /* Updated: neon orange border */
     display: block;
     margin: 0 auto;
     background-color: #000; /* Black canvas background */
@@ -18,7 +18,7 @@ body {
 }
 
 h1 {
-    color: #00ff00; /* Neon green */
+    color: #ffa500; /* Updated: Neon orange */
 }
 
 button {
@@ -27,6 +27,6 @@ button {
     cursor: pointer;
     font-size: 16px;
     background-color: #000;
-    color: #00ff00; /* Neon green */
-    border: 1px solid #00ff00; /* Neon green border */
+    color: #ffa500; /* Updated: Neon orange */
+    border: 1px solid #ffa500; /* Updated: Neon orange border */
 }
