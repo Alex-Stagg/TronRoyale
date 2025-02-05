@@ -1,13 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"tron/internal/model"
 )
+
+type Coordinates struct {
+	X float64
+	Y float64
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -15,46 +24,84 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var clients = make(map[*websocket.Conn]bool)
 var broadcast = make(chan model.Event)
 var mutex = &sync.Mutex{}
 
-func handleConnections(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer ws.Close()
+var clients = make(map[*websocket.Conn]string)
+var coordinatesList []Coordinates
 
-	mutex.Lock()
-	clients[ws] = true
-	mutex.Unlock()
-
-	for {
-		var event model.Event
-		err := ws.ReadJSON(&event)
+// handleConnectionsHandler handles incoming WebSocket connections
+func handleConnectionsHandler(logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("error: %v", err)
-			mutex.Lock()
-			delete(clients, ws)
-			mutex.Unlock()
-			break
+			log.Fatal(err)
 		}
-		if event.Type == model.JoinedLobbyEvent {
-			fmt.Println("Someone joined the lobby")
-			broadcast <- event
+		defer ws.Close()
+
+		for {
+			var event model.Event
+			err := ws.ReadJSON(&event)
+			if err != nil {
+				logger.Error("Error reading JSON.", "error", err)
+				mutex.Lock()
+				delete(clients, ws)
+				mutex.Unlock()
+				break
+			}
+
+			if err := event.Validate(); err != nil {
+				logger.Error("Invalid event", "error", err, "event", event)
+				continue
+			}
+
+			switch event.Type {
+			case model.JoinedLobbyEvent:
+				var payload model.JoinedLobbyPayload
+				if err := json.Unmarshal(event.Payload, &payload); err != nil {
+					logger.Error("Error unmarshalling payload", "error", err)
+					continue
+				}
+				mutex.Lock()
+
+				if _, exists := clients[ws]; exists {
+					mutex.Unlock()
+					_ = ws.WriteJSON(model.NewErrorResponse("Username already exists"))
+					continue
+				}
+
+				clients[ws] = payload.Username
+				mutex.Unlock()
+				logger.Info("Someone joined the lobby", "username", payload.Username)
+				broadcast <- event
+			case model.LocationUpdateEvent:
+				var payload model.LocationUpdatePayload
+				if err := json.Unmarshal(event.Payload, &payload); err != nil {
+					logger.Error("Error unmarshalling payload", "error", err)
+					continue
+				}
+				mutex.Lock()
+				coordinatesList = append(coordinatesList, Coordinates{X: payload.X, Y: payload.Y})
+				mutex.Unlock()
+				logger.Info("Location update", coordinatesList)
+				logger.Info("Location update", "x", payload.X, "y", payload.Y)
+				broadcast <- event
+			default:
+				logger.Warn("Unknown event type")
+			}
 		}
 	}
 }
 
-func handleMessages() {
+func handleMessages(logger *slog.Logger) {
 	for {
+		fmt.Println("Waiting for event")
 		event := <-broadcast
 		mutex.Lock()
 		for client := range clients {
-			err := client.WriteJSON(event)
-			if err != nil {
-				log.Printf("error: %v", err)
+			fmt.Println("Sending event")
+			if err := client.WriteJSON(event); err != nil {
+				slog.Error("error parsing JSON message", "error", err)
 				client.Close() // Does this kill the client?
 				delete(clients, client)
 			}
@@ -64,12 +111,19 @@ func handleMessages() {
 }
 
 func main() {
-	http.HandleFunc("/ws", handleConnections)
-	go handleMessages()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	log.Println("Server started on :42069")
-	err := http.ListenAndServe(":42069", nil)
+	http.HandleFunc("/ws", handleConnectionsHandler(logger))
+	go handleMessages(logger)
+
+	frontendPath, err := filepath.Abs("../frontend")
 	if err != nil {
+		log.Fatal("Failed to get absolute path:", err)
+	}
+	http.Handle("/", http.FileServer(http.Dir(frontendPath)))
+
+	slog.Info("Server started on :42069")
+	if err := http.ListenAndServe(":42069", nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
