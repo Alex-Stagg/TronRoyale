@@ -50,7 +50,7 @@ document.addEventListener('keydown', (e) => {
         p2Direction = { x: speed, y: 0 };
         gameOver = false;
         winner = null; // Reset winner
-        gameLoop();
+        // Removed duplicate gameLoop() call to prevent multiple loops
         return;
     }
     
