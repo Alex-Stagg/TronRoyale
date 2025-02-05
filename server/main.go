@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"tron/internal/model"
 )
@@ -114,6 +115,12 @@ func main() {
 
 	http.HandleFunc("/ws", handleConnectionsHandler(logger))
 	go handleMessages(logger)
+
+	frontendPath, err := filepath.Abs("../frontend")
+	if err != nil {
+		log.Fatal("Failed to get absolute path:", err)
+	}
+	http.Handle("/", http.FileServer(http.Dir(frontendPath)))
 
 	slog.Info("Server started on :42069")
 	if err := http.ListenAndServe(":42069", nil); err != nil {
