@@ -182,9 +182,9 @@ function gameLoop() {
         }
         
         // Collision detection: player1 head with player2 trail
-        for (let i = 0; i < p2Vertices.length - 1; i++) {
+        for (let i = 0; i < p2Vertices.length; i++) {
             const p2Start = p2Vertices[i];
-            const p2End = p2Vertices[i + 1];
+            const p2End = (i === p2Vertices.length - 1) ? { x: p2X, y: p2Y } : p2Vertices[i + 1];
             if (linesIntersect(p2Start.x, p2Start.y, p2End.x, p2End.y, vertices[vertices.length - 1].x, vertices[vertices.length - 1].y, x, y)) {
                 gameOver = true;
                 winner = 'Player 2';
@@ -192,9 +192,9 @@ function gameLoop() {
             }
         }
         // Collision detection: player2 head with player1 trail
-        for (let i = 0; i < vertices.length - 1; i++) {
+        for (let i = 0; i < vertices.length; i++) {
             const p1Start = vertices[i];
-            const p1End = vertices[i + 1];
+            const p1End = (i === vertices.length - 1) ? { x: x, y: y } : vertices[i + 1];
             if (linesIntersect(p1Start.x, p1Start.y, p1End.x, p1End.y, p2Vertices[p2Vertices.length - 1].x, p2Vertices[p2Vertices.length - 1].y, p2X, p2Y)) {
                 gameOver = true;
                 winner = 'Player 1';
