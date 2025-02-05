@@ -95,7 +95,8 @@ function gameLoop() {
     ctx.strokeStyle = '#00ffff'; // Neon cyan
     ctx.lineWidth = cellSize;
     ctx.shadowColor = '#00ffff'; // Bloom effect color (same as tail)
-    ctx.shadowBlur = 20; // Increase blur for bloom effect
+    // Increased shadowBlur from 20 to 25 for enhanced intensity
+    ctx.shadowBlur = 25; // Previously 20
     ctx.beginPath();
     // Start at first vertex
     ctx.moveTo(vertices[0].x, vertices[0].y);
