@@ -12,7 +12,7 @@ body {
     text-align: center;
     margin: 0;
     padding: 20px;
-    background-color: #e0e0e0;
+    background-color: #000; /* Tron vibe */
     height: 100vh; /* Set body height to 100% of the viewport height */
     overflow: hidden; /* Prevent scrolling */
 }
