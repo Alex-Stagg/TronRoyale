@@ -29,4 +29,4 @@ jobs:
           context: ./server
           file: ./server/Dockerfile
           push: true
-          tags: ghcr.io/tron-royale:latest
+          tags: ghcr.io/Alex-Stagg/tronroyale:latest
