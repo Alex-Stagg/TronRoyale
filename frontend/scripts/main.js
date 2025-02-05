@@ -20,6 +20,7 @@ window.addEventListener('resize', () => {
 
 let speed = 2;
 let gameOver = false;
+let winner = null; // New global variable for winner
 // Initialize direction and starting position; head is at center initially
 let direction = { x: speed, y: 0 };
 let vertices = [{ x: canvas.width / 2, y: canvas.height / 2 }];
@@ -48,6 +49,7 @@ document.addEventListener('keydown', (e) => {
         p2Vertices = [{ x: p2X, y: p2Y }];
         p2Direction = { x: speed, y: 0 };
         gameOver = false;
+        winner = null; // Reset winner
         gameLoop();
         return;
     }
@@ -111,61 +113,102 @@ function drawPlayerTail(startVertices, currentX, currentY, color) {
     ctx.restore();
 }
 
+// Modify drawGameOverMessage to display winner if available
+function drawGameOverMessage() {
+    ctx.save();
+    ctx.fillStyle = '#ff4500';
+    ctx.font = '48px Arial';
+    ctx.textAlign = 'center';
+    if (winner) {
+        ctx.fillText(winner + ' Wins!', canvas.width / 2, canvas.height / 2 - 20);
+    } else {
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+    }
+    ctx.font = '24px Arial';
+    ctx.fillText('Press any key to restart', canvas.width / 2, canvas.height / 2 + 20);
+    ctx.restore();
+}
+
 function gameLoop() {
     // Clear entire canvas for new frame
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Update player1 position
-    x += direction.x;
-    y += direction.y;
-    // Update player2 position
-    p2X += p2Direction.x;
-    p2Y += p2Direction.y;
-    
-    // Collision detection for player1 self-trail
-    if (vertices.length >= 1) {
-        const segStart = vertices[vertices.length - 1];
-        const segEnd = { x, y };
-        for (let i = 0; i < vertices.length - 1; i++) {
-            const prevStart = vertices[i];
-            const prevEnd = vertices[i + 1];
-            if (linesIntersect(prevStart.x, prevStart.y, prevEnd.x, prevEnd.y, segStart.x, segStart.y, segEnd.x, segEnd.y)) {
-                alert('Game Over!');
-                gameOver = true;
-                break;
+    if (!gameOver) {
+        // Update player1 position
+        x += direction.x;
+        y += direction.y;
+        // Update player2 position
+        p2X += p2Direction.x;
+        p2Y += p2Direction.y;
+        
+        // Collision detection for player1 self-trail
+        if (vertices.length >= 1) {
+            const segStart = vertices[vertices.length - 1];
+            const segEnd = { x, y };
+            for (let i = 0; i < vertices.length - 1; i++) {
+                const prevStart = vertices[i];
+                const prevEnd = vertices[i + 1];
+                if (linesIntersect(prevStart.x, prevStart.y, prevEnd.x, prevEnd.y, segStart.x, segStart.y, segEnd.x, segEnd.y)) {
+                    gameOver = true;
+                    winner = 'Player 2';
+                    break;
+                }
             }
         }
-    }
-    // Boundary collision for player1
-    if (x < 0 || x > canvas.width - cellSize || y < 0 || y > canvas.height - cellSize) {
-        alert('Game Over!');
-        gameOver = true;
-    }
-    
-    // Collision detection for player2 self-trail
-    if (p2Vertices.length >= 1) {
-        const segStart2 = p2Vertices[p2Vertices.length - 1];
-        const segEnd2 = { x: p2X, y: p2Y };
+        // Boundary collision for player1
+        if (x < 0 || x > canvas.width - cellSize || y < 0 || y > canvas.height - cellSize) {
+            gameOver = true;
+            winner = 'Player 2';
+        }
+        
+        // Collision detection for player2 self-trail
+        if (p2Vertices.length >= 1) {
+            const segStart2 = p2Vertices[p2Vertices.length - 1];
+            const segEnd2 = { x: p2X, y: p2Y };
+            for (let i = 0; i < p2Vertices.length - 1; i++) {
+                const prevStart2 = p2Vertices[i];
+                const prevEnd2 = p2Vertices[i + 1];
+                if (linesIntersect(prevStart2.x, prevStart2.y, prevEnd2.x, prevEnd2.y, segStart2.x, segStart2.y, segEnd2.x, segEnd2.y)) {
+                    gameOver = true;
+                    winner = 'Player 1';
+                    break;
+                }
+            }
+        }
+        // Boundary collision for player2
+        if (p2X < 0 || p2X > canvas.width - p2CellSize || p2Y < 0 || p2Y > canvas.height - p2CellSize) {
+            gameOver = true;
+            winner = 'Player 1';
+        }
+        
+        // Collision detection: player1 head with player2 trail
         for (let i = 0; i < p2Vertices.length - 1; i++) {
-            const prevStart2 = p2Vertices[i];
-            const prevEnd2 = p2Vertices[i + 1];
-            if (linesIntersect(prevStart2.x, prevStart2.y, prevEnd2.x, prevEnd2.y, segStart2.x, segStart2.y, segEnd2.x, segEnd2.y)) {
-                alert('Game Over!');
+            const p2Start = p2Vertices[i];
+            const p2End = p2Vertices[i + 1];
+            if (linesIntersect(p2Start.x, p2Start.y, p2End.x, p2End.y, vertices[vertices.length - 1].x, vertices[vertices.length - 1].y, x, y)) {
                 gameOver = true;
+                winner = 'Player 2';
                 break;
             }
         }
-    }
-    // Boundary collision for player2
-    if (p2X < 0 || p2X > canvas.width - p2CellSize || p2Y < 0 || p2Y > canvas.height - p2CellSize) {
-        alert('Game Over!');
-        gameOver = true;
+        // Collision detection: player2 head with player1 trail
+        for (let i = 0; i < vertices.length - 1; i++) {
+            const p1Start = vertices[i];
+            const p1End = vertices[i + 1];
+            if (linesIntersect(p1Start.x, p1Start.y, p1End.x, p1End.y, p2Vertices[p2Vertices.length - 1].x, p2Vertices[p2Vertices.length - 1].y, p2X, p2Y)) {
+                gameOver = true;
+                winner = 'Player 1';
+                break;
+            }
+        }
     }
     
     // Draw player tails if not game over
     if (!gameOver) {
         drawPlayerTail(vertices, x, y, '#00ffff'); // Player1: neon cyan
         drawPlayerTail(p2Vertices, p2X, p2Y, p2Color); // Player2: neon magenta
+    } else {
+        drawGameOverMessage();
     }
     
     requestAnimationFrame(gameLoop);
