@@ -214,5 +214,12 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Start the game loop
-gameLoop();
+// Added: start game on "Start local game" button click
+document.getElementById('startGame').addEventListener('click', () => {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('myCanvas').style.display = 'block';
+    gameLoop();
+});
+
+// Removed automatic game start:
+// // gameLoop();
